@@ -8,17 +8,105 @@
 </head>
 <body>
 
-    <h1>Pong Arena</h1>
+    <!-- Main Menu -->
+    <div id="menuScreen" class="screen">
 
-    <div id="scoreboard">
-        <span id="p1Score">0</span>
-        :
-        <span id="p2Score">0</span>
+        <h1>Pong Arena</h1>
+
+        <div class="input-container">
+            <label for="player1Name">Player 1 Name</label>
+            <input
+                type="text"
+                id="player1Name"
+                placeholder="Enter Player 1 Name"
+                maxlength="20"
+            >
+        </div>
+
+        <div class="input-container">
+            <label for="player2Name">Player 2 Name</label>
+            <input
+                type="text"
+                id="player2Name"
+                placeholder="Enter Player 2 Name"
+                maxlength="20"
+            >
+        </div>
+
+        <button id="startBtn">
+            Start Game
+        </button>
+
+        <button id="leaderboardBtn">
+            View Leaderboard
+        </button>
+
     </div>
 
-    <canvas id="gameCanvas" width="1000" height="600"></canvas>
+    <!-- Leaderboard -->
+    <div id="leaderboardScreen" class="screen hidden">
 
-    <div id="winner"></div>
+        <h1>Leaderboard</h1>
+
+        <div id="leaderboardList"></div>
+
+        <button id="backBtn">
+            Back
+        </button>
+
+    </div>
+
+    <!-- Game Screen -->
+    <div id="gameScreen" class="hidden">
+
+        <div id="topBar">
+
+            <div class="playerInfo">
+                <span id="player1Display"></span>
+                <span id="player1Color"></span>
+            </div>
+
+            <div id="scoreboard">
+                <span id="p1Score">0</span>
+                :
+                <span id="p2Score">0</span>
+            </div>
+
+            <div class="playerInfo">
+                <span id="player2Display"></span>
+                <span id="player2Color"></span>
+            </div>
+
+        </div>
+
+        <div id="countdown"></div>
+
+        <canvas
+            id="gameCanvas"
+            width="1400"
+            height="800"
+        ></canvas>
+
+    </div>
+
+    <!-- Winner Screen -->
+    <div id="winnerScreen" class="screen hidden">
+
+        <h1 id="winnerTitle">
+            Winner
+        </h1>
+
+        <p id="finalScore"></p>
+
+        <button id="playAgainBtn">
+            Play Again
+        </button>
+
+        <button id="menuBtn">
+            Main Menu
+        </button>
+
+    </div>
 
     <script src="script.js"></script>
 
