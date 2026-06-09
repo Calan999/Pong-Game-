@@ -1,0 +1,90 @@
+# Game Design Brief: Competitive Pong-Inspired Arena Game
+
+## Overview
+
+Create a two-player competitive arcade game inspired by Pong, with additional gameplay mechanics, progression systems, and dynamic obstacles.
+
+## Core Gameplay
+
+* The game is played between two players in a rectangular arena.
+* Each player controls a single paddle (racket) positioned on opposite sides of the arena.
+* Players can move their paddle vertically to defend their goal area (end zone).
+* At the start of each match, each player is randomly assigned either the **Red** or **Blue** team color. This assignment remains unchanged for the duration of the match.
+
+## Scoring System
+
+* Each player has an end zone located behind their paddle.
+* A player scores **1 point** when they successfully hit the ball into their opponent's end zone.
+* After a point is scored, the ball resets to the center of the arena and play resumes.
+* The first player to reach **10 points** wins the match.
+
+## Ball Physics
+
+* The ball starts at a standard speed.
+* The ball's speed and trajectory should be influenced by where it contacts the paddle:
+
+  * Hits near the center of the paddle produce a more predictable bounce.
+  * Hits closer to the paddle edges increase the ball's speed and create sharper bounce angles.
+* Ball speed should gradually increase throughout rallies to make gameplay more challenging and rewarding.
+
+## Dynamic Obstacles
+
+* Random obstacles should periodically appear within the arena.
+* Obstacles remain active for a limited duration before disappearing.
+* New obstacles spawn at random locations and intervals.
+* Obstacles affect ball movement by blocking, deflecting, or altering its trajectory.
+* Obstacles should never completely block access to either player's end zone.
+
+## Match Victory
+
+* The match immediately ends when a player reaches 10 points.
+* A victory screen displays:
+
+  * Winner's color/team
+  * Final score
+  * Match statistics (optional)
+
+## Player Progression
+
+* Winning a match awards the victorious player **5 leaderboard points**.
+* Leaderboard points persist between matches.
+
+## Leaderboard System
+
+* Maintain a global leaderboard showing:
+
+  * Player name
+  * Total leaderboard points
+  * Matches won (optional)
+  * Win rate (optional)
+* Players are ranked from highest to lowest total leaderboard points.
+* The leaderboard updates automatically after each completed match.
+
+## Additional Features (Recommended)
+
+* Main menu with Play, Leaderboard, and Settings options.
+* Sound effects and visual effects for paddle hits, goals, and victories.
+* Pause menu.
+* Adjustable game settings (sound, graphics, controls).
+* Smooth animations and responsive controls.
+* Optional online multiplayer support.
+* Spectator mode and replay system (future expansion).
+
+## Player Controls
+
+### Player 1
+
+* Move paddle up: **W**
+* Move paddle down: **S**
+
+### Player 2
+
+* Move paddle up: **Up Arrow (↑)**
+* Move paddle down: **Down Arrow (↓)**
+
+### Control Requirements
+
+* Paddle movement should be smooth and responsive.
+* Players can only move vertically.
+* Paddles cannot leave the boundaries of the playing field.
+* Both players should be able to move simultaneously without input conflicts.
