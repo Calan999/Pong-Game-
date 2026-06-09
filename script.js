@@ -1,424 +1,361 @@
-const canvas = document.getElementById("gameCanvas");
+const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-const WIDTH = canvas.width;
-const HEIGHT = canvas.height;
+const W = canvas.width;
+const H = canvas.height;
 
-const WIN_SCORE = 10;
-const MAX_BALL_SPEED = 18;
+const WIN_SCORE = 3; // FIXED TO 3
+
+let state = "menu"; // menu | countdown | play | win
+
+let scoreP1 = 0;
+let scoreP2 = 0;
+
+let p1Name = "";
+let p2Name = "";
 
 let keys = {};
 
-// ---------------------
-// GAME STATE
-// ---------------------
-let gameState = "menu"; 
-// menu | playing | winner | leaderboard
+document.addEventListener("keydown", e => keys[e.key] = true);
+document.addEventListener("keyup", e => keys[e.key] = false);
 
-let player1Name = "";
-let player2Name = "";
-
-let player1Color = "red";
-let player2Color = "blue";
-
-let p1Score = 0;
-let p2Score = 0;
-
-let gameOver = false;
-
-// ---------------------
-// INPUT
-// ---------------------
-document.addEventListener("keydown", (e) => {
-    keys[e.key] = true;
-});
-
-document.addEventListener("keyup", (e) => {
-    keys[e.key] = false;
-});
-
-// ---------------------
-// LEADERBOARD
-// ---------------------
-let leaderboard = JSON.parse(localStorage.getItem("leaderboard")) || [];
-
-function saveLeaderboard() {
-    localStorage.setItem("leaderboard", JSON.stringify(leaderboard));
-}
-
-function updateLeaderboard(winnerName) {
-    let player = leaderboard.find(p => p.name === winnerName);
-
-    if (player) {
-        player.points += 5;
-        player.wins += 1;
-    } else {
-        leaderboard.push({
-            name: winnerName,
-            points: 5,
-            wins: 1
-        });
-    }
-
-    leaderboard.sort((a, b) => b.points - a.points);
-    saveLeaderboard();
-}
-
-// ---------------------
-// PADDLE CLASS
-// ---------------------
+// ---------------- PADDLE ----------------
 class Paddle {
-    constructor(x, color) {
+    constructor(x, name, color) {
         this.x = x;
-        this.y = HEIGHT / 2 - 60;
-        this.width = 15;
-        this.height = 120;
+        this.y = H / 2 - 60;
+        this.w = 15;
+        this.h = 120;
         this.speed = 8;
+        this.name = name;
         this.color = color;
     }
 
     draw() {
         ctx.fillStyle = this.color;
-        ctx.fillRect(this.x, this.y, this.width, this.height);
+        ctx.fillRect(this.x, this.y, this.w, this.h);
+
+        ctx.fillStyle = "white";
+        ctx.font = "16px Arial";
+        ctx.textAlign = "center";
+
+        ctx.fillText(this.name, this.x + this.w / 2, this.y - 10);
     }
 
-    move(upKey, downKey) {
-        if (keys[upKey]) this.y -= this.speed;
-        if (keys[downKey]) this.y += this.speed;
+    move(up, down) {
+        if (state !== "play") return;
 
-        // clamp
-        this.y = Math.max(0, Math.min(HEIGHT - this.height, this.y));
+        if (keys[up]) this.y -= this.speed;
+        if (keys[down]) this.y += this.speed;
+
+        this.y = Math.max(0, Math.min(H - this.h, this.y));
     }
 }
 
-// ---------------------
-// BALL CLASS
-// ---------------------
+// ---------------- BALL ----------------
 class Ball {
     constructor() {
-        this.radius = 10;
         this.reset();
     }
 
     reset() {
-        this.x = WIDTH / 2;
-        this.y = HEIGHT / 2;
+        this.x = W / 2;
+        this.y = H / 2;
 
         this.speed = 7;
-
         this.dx = Math.random() > 0.5 ? this.speed : -this.speed;
         this.dy = (Math.random() - 0.5) * 5;
     }
 
     draw() {
-        ctx.fillStyle = "white";
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.arc(this.x, this.y, 10, 0, Math.PI * 2);
+        ctx.fillStyle = "white";
         ctx.fill();
     }
 
     update() {
+        if (state !== "play") return;
+
         this.x += this.dx;
         this.y += this.dy;
 
         // top/bottom walls
-        if (this.y <= this.radius || this.y >= HEIGHT - this.radius) {
+        if (this.y < 10 || this.y > H - 10) {
             this.dy *= -1;
         }
     }
 }
 
-// ---------------------
-// OBSTACLE CLASS
-// ---------------------
+// ---------------- OBSTACLE ----------------
 class Obstacle {
     constructor() {
-        this.width = 30;
-        this.height = 120;
-
-        // safe spawn zone (avoid edges)
-        this.x = Math.random() * (WIDTH - 600) + 300;
-        this.y = Math.random() * (HEIGHT - 150);
+        this.w = 30;
+        this.h = 120;
+        this.x = Math.random() * (W - 600) + 300;
+        this.y = Math.random() * (H - 200) + 100;
     }
 
     draw() {
-        ctx.fillStyle = "#666";
-        ctx.fillRect(this.x, this.y, this.width, this.height);
+        ctx.fillStyle = "gray";
+        ctx.fillRect(this.x, this.y, this.w, this.h);
     }
 }
 
-let obstacle = null;
+let ball, left, right;
+let obstacles = [];
 
-// ---------------------
-// OBJECTS
-// ---------------------
-let paddle1, paddle2, ball;
+// ---------------- INIT ----------------
+function init() {
 
-// ---------------------
-// INIT GAME
-// ---------------------
-function initGame() {
-    p1Score = 0;
-    p2Score = 0;
-    gameOver = false;
+    scoreP1 = 0;
+    scoreP2 = 0;
 
-    player1Color = Math.random() > 0.5 ? "red" : "blue";
-    player2Color = player1Color === "red" ? "blue" : "red";
+    left = new Paddle(30, p1Name, "red");
+    right = new Paddle(W - 45, p2Name, "dodgerblue");
 
-    paddle1 = new Paddle(30, player1Color);
-    paddle2 = new Paddle(WIDTH - 45, player2Color);
     ball = new Ball();
 
-    updateScoreUI();
-    startCountdown();
+    obstacles = [];
+    updateScore();
 }
 
-// ---------------------
-// COUNTDOWN
-// ---------------------
-function startCountdown() {
-    let count = 3;
-    const countdownEl = document.getElementById("countdown");
+// ---------------- COUNTDOWN ----------------
+function countdown() {
 
-    countdownEl.innerText = count;
+    state = "countdown";
 
-    const interval = setInterval(() => {
-        count--;
+    let c = 3;
+    document.getElementById("countdown").innerText = c;
 
-        if (count > 0) {
-            countdownEl.innerText = count;
-        } else if (count === 0) {
-            countdownEl.innerText = "GO!";
-        } else {
-            countdownEl.innerText = "";
-            clearInterval(interval);
+    let t = setInterval(() => {
+
+        c--;
+
+        if (c > 0) {
+            document.getElementById("countdown").innerText = c;
         }
+        else if (c === 0) {
+            document.getElementById("countdown").innerText = "GO!";
+        }
+        else {
+            document.getElementById("countdown").innerText = "";
+            clearInterval(t);
+            state = "play";
+        }
+
     }, 1000);
 }
 
-// ---------------------
-// INPUT MOVEMENT
-// ---------------------
-function movePaddles() {
-    paddle1.move("w", "s");
-    paddle2.move("ArrowUp", "ArrowDown");
-}
-
-// ---------------------
-// COLLISIONS
-// ---------------------
-function paddleCollision(paddle) {
-    if (
-        ball.x - ball.radius < paddle.x + paddle.width &&
-        ball.x + ball.radius > paddle.x &&
-        ball.y > paddle.y &&
-        ball.y < paddle.y + paddle.height
-    ) {
-        let hit = (ball.y - (paddle.y + paddle.height / 2)) / (paddle.height / 2);
-
-        ball.dx *= -1;
-        ball.dy = hit * 6;
-
-        ball.speed = Math.min(ball.speed + 0.6, MAX_BALL_SPEED);
-
-        ball.dx = Math.sign(ball.dx) * ball.speed;
-
-        // prevent sticking
-        if (ball.dx > 0) {
-            ball.x = paddle.x + paddle.width + ball.radius;
-        } else {
-            ball.x = paddle.x - ball.radius;
-        }
-    }
-}
-
-function obstacleCollision() {
-    if (!obstacle) return;
-
-    if (
-        ball.x + ball.radius > obstacle.x &&
-        ball.x - ball.radius < obstacle.x + obstacle.width &&
-        ball.y + ball.radius > obstacle.y &&
-        ball.y - ball.radius < obstacle.y + obstacle.height
-    ) {
-        ball.dx *= -1;
-
-        // push ball out (fix sticking)
-        if (ball.dx > 0) {
-            ball.x = obstacle.x + obstacle.width + ball.radius;
-        } else {
-            ball.x = obstacle.x - ball.radius;
-        }
-    }
-}
-
-// ---------------------
-// SCORING
-// ---------------------
-function checkScore() {
-    if (ball.x < 0) {
-        p2Score++;
-        resetBall();
-    }
-
-    if (ball.x > WIDTH) {
-        p1Score++;
-        resetBall();
-    }
-
-    updateScoreUI();
-
-    if (p1Score >= WIN_SCORE || p2Score >= WIN_SCORE) {
-        endGame();
-    }
-}
-
-function resetBall() {
-    ball.reset();
-}
-
-// ---------------------
-// END GAME
-// ---------------------
-function endGame() {
-    gameOver = true;
-    gameState = "winner";
-
-    const winnerName =
-        p1Score > p2Score ? player1Name : player2Name;
-
-    updateLeaderboard(winnerName);
-
-    document.getElementById("winnerTitle").innerText =
-        winnerName + " Wins!";
-
-    document.getElementById("finalScore").innerText =
-        `${p1Score} - ${p2Score}`;
-
-    showScreen("winnerScreen");
-}
-
-// ---------------------
-// LEADERBOARD UI
-// ---------------------
-function renderLeaderboard() {
-    const list = document.getElementById("leaderboardList");
-    list.innerHTML = "";
-
-    leaderboard.forEach((p, i) => {
-        const div = document.createElement("div");
-        div.className = "leaderboard-item";
-        div.innerHTML = `
-            <span>#${i + 1} ${p.name}</span>
-            <span>${p.points} pts</span>
-        `;
-        list.appendChild(div);
-    });
-}
-
-// ---------------------
-// UI HELPERS
-// ---------------------
-function updateScoreUI() {
-    document.getElementById("p1Score").innerText = p1Score;
-    document.getElementById("p2Score").innerText = p2Score;
-}
-
-function showScreen(id) {
-    document.querySelectorAll(".screen").forEach(s => s.classList.add("hidden"));
-    document.getElementById(id).classList.remove("hidden");
-}
-
-// ---------------------
-// OBSTACLES
-// ---------------------
-function spawnObstacle() {
-    obstacle = new Obstacle();
-
-    setTimeout(() => {
-        obstacle = null;
-    }, 5000);
+// ---------------- OBSTACLES ----------------
+function isTooClose(o1, o2, minDistance = 40) {
+    return !(
+        o1.x + o1.w + minDistance < o2.x ||
+        o1.x > o2.x + o2.w + minDistance ||
+        o1.y + o1.h + minDistance < o2.y ||
+        o1.y > o2.y + o2.h + minDistance
+    );
 }
 
 setInterval(() => {
-    if (gameState === "playing") {
-        spawnObstacle();
+    if (state !== "play") return;
+
+    obstacles = [];
+
+    for (let i = 0; i < 2; i++) {
+        let attempts = 0;
+        let newObstacle;
+
+        do {
+            newObstacle = new Obstacle();
+            attempts++;
+        } while (
+            obstacles.some(o => isTooClose(newObstacle, o)) &&
+            attempts < 50
+        );
+
+        obstacles.push(newObstacle);
     }
-}, 8000);
 
-// ---------------------
-// GAME LOOP
-// ---------------------
-function update() {
-    if (gameState !== "playing") return;
+}, 7000);
 
-    movePaddles();
-
-    ball.update();
-
-    paddleCollision(paddle1);
-    paddleCollision(paddle2);
-
-    obstacleCollision();
-
-    checkScore();
+// ---------------- COLLISION ----------------
+function hitPaddle(p) {
+    if (
+        ball.x < p.x + p.w &&
+        ball.x > p.x &&
+        ball.y > p.y &&
+        ball.y < p.y + p.h
+    ) {
+        ball.dx *= -1;
+        ball.speed += 0.3;
+    }
 }
 
-function draw() {
-    ctx.clearRect(0, 0, WIDTH, HEIGHT);
+// ---------------- OBSTACLE COLLISION (FIXED) ----------------
+function hitObstacle(o) {
 
-    if (gameState !== "playing") return;
+    if (
+        ball.x + 10 > o.x &&
+        ball.x - 10 < o.x + o.w &&
+        ball.y + 10 > o.y &&
+        ball.y - 10 < o.y + o.h
+    ) {
 
-    paddle1.draw();
-    paddle2.draw();
-    ball.draw();
+        // reverse direction
+        ball.dx *= -1;
 
-    if (obstacle) obstacle.draw();
+        // push ball OUT so it doesn't stick
+        if (ball.x < o.x) {
+            ball.x = o.x - 10;
+        } else {
+            ball.x = o.x + o.w + 10;
+        }
+    }
 }
 
+// ---------------- SCORE ----------------
+function score() {
+
+    if (state !== "play") return;
+
+    if (ball.x < 0) {
+        scoreP2++;
+        reset();
+    }
+
+    if (ball.x > W) {
+        scoreP1++;
+        reset();
+    }
+
+    updateScore();
+
+    if (scoreP1 >= WIN_SCORE || scoreP2 >= WIN_SCORE) {
+        win();
+    }
+}
+
+// ---------------- RESET ----------------
+function reset() {
+    ball.reset();
+    state = "countdown";
+    countdown();
+}
+
+// ---------------- WIN ----------------
+function win() {
+
+    state = "win";
+
+    let winner = scoreP1 > scoreP2 ? p1Name : p2Name;
+
+    document.getElementById("winText").innerText =
+        winner + " Wins!";
+
+    document.getElementById("win").classList.remove("hidden");
+
+    save(winner);
+}
+// ---------------- LEADERBOARD ----------------
+
+    function openLeaderboard() {
+
+    document.getElementById("menu").classList.add("hidden");
+    document.getElementById("leaderboard").classList.remove("hidden");
+
+    let data = JSON.parse(localStorage.getItem("lb")) || [];
+
+    // sort best first
+    data.sort((a, b) => b.points - a.points);
+
+    // keep only top 10
+    data = data.slice(0, 10);
+
+    let board = document.getElementById("board");
+    board.innerHTML = "";
+
+    data.forEach((p, i) => {
+        let div = document.createElement("div");
+        div.innerText = `${i + 1}. ${p.name} - ${p.points} pts`;
+        board.appendChild(div);
+    });
+}
+// ---------------- LEADERBOARD ----------------
+function save(name) {
+
+    let data = JSON.parse(localStorage.getItem("lb")) || [];
+
+    let p = data.find(x => x.name === name);
+
+    if (p) p.points += 5;
+    else data.push({ name, points: 5 });
+
+    localStorage.setItem("lb", JSON.stringify(data));
+}
+
+// ---------------- UI ----------------
+function updateScore() {
+    document.getElementById("score").innerText =
+        scoreP1 + " : " + scoreP2;
+}
+
+// ---------------- START ----------------
+function startGame() {
+
+    p1Name = document.getElementById("p1").value || "P1";
+    p2Name = document.getElementById("p2").value || "P2";
+
+    document.getElementById("menu").classList.add("hidden");
+    document.getElementById("gameScreen").classList.remove("hidden");
+
+    init();
+    countdown();
+}
+
+// ---------------- LOOP ----------------
 function loop() {
-    update();
-    draw();
+
+    ctx.clearRect(0, 0, W, H);
+
+    if (state === "play") {
+
+        left.move("w", "s");
+        right.move("ArrowUp", "ArrowDown");
+
+        ball.update();
+
+        hitPaddle(left);
+        hitPaddle(right);
+
+        // OBSTACLE COLLISION FIX
+        for (let i = 0; i < obstacles.length; i++) {
+            hitObstacle(obstacles[i]);
+        }
+
+        obstacles.forEach(o => o.draw());
+
+        score();
+    }
+
+    // DRAW ALWAYS
+    if (state === "play" || state === "countdown") {
+        left.draw();
+        right.draw();
+        ball.draw();
+    }
+
     requestAnimationFrame(loop);
 }
-
 loop();
 
-// ---------------------
-// MENU BUTTONS
-// ---------------------
-document.getElementById("startBtn").onclick = () => {
-    player1Name = document.getElementById("player1Name").value || "Player 1";
-    player2Name = document.getElementById("player2Name").value || "Player 2";
+// ---------------- NAV ----------------
+function restart() {
+        scoreP1 = 0;
+    scoreP2 = 0;
+    reset()
+}
 
-    document.getElementById("player1Display").innerText = player1Name;
-    document.getElementById("player2Display").innerText = player2Name;
-
-    document.getElementById("player1Color").innerText = player1Color;
-    document.getElementById("player2Color").innerText = player2Color;
-
-    gameState = "playing";
-    showScreen("gameScreen");
-
-    initGame();
-};
-
-document.getElementById("leaderboardBtn").onclick = () => {
-    renderLeaderboard();
-    showScreen("leaderboardScreen");
-};
-
-document.getElementById("backBtn").onclick = () => {
-    showScreen("menuScreen");
-};
-
-document.getElementById("playAgainBtn").onclick = () => {
-    gameState = "playing";
-    showScreen("gameScreen");
-    initGame();
-};
-
-document.getElementById("menuBtn").onclick = () => {
-    gameState = "menu";
-    showScreen("menuScreen");
-};
+function backMenu() {
+    location.reload();
+}
