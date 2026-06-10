@@ -1,18 +1,19 @@
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-
 const W = canvas.width;
 const H = canvas.height;
 
-const WIN_SCORE = 3; // FIXED TO 3
+const WIN_SCORE = 3;
 
-let state = "menu"; // menu | countdown | play | win
+let state = "menu";
 
 let scoreP1 = 0;
 let scoreP2 = 0;
 
 let speedLevel = 0;
+
+let unlockedAchievements = [];
 
 let p1Name = "";
 let p2Name = "";
@@ -83,7 +84,6 @@ class Ball {
         this.x += this.dx;
         this.y += this.dy;
 
-        // top/bottom walls
         if (this.y < 10 || this.y > H - 10) {
             this.dy *= -1;
         }
@@ -115,6 +115,7 @@ function init() {
     scoreP2 = 0;
 
     left = new Paddle(30, p1Name, "red");
+
     if (gameMode !== "single") {
         right = new Paddle(W - 45, p2Name, "dodgerblue");
     }
@@ -122,7 +123,8 @@ function init() {
     ball = new Ball();
 
     obstacles = [];
-    updateScore();
+
+
 }
 
 // ---------------- COUNTDOWN ----------------
@@ -139,11 +141,9 @@ function countdown() {
 
         if (c > 0) {
             document.getElementById("countdown").innerText = c;
-        }
-        else if (c === 0) {
+        } else if (c === 0) {
             document.getElementById("countdown").innerText = "GO!";
-        }
-        else {
+        } else {
             document.getElementById("countdown").innerText = "";
             clearInterval(t);
             state = "play";
@@ -197,7 +197,7 @@ function hitPaddle(p) {
     }
 }
 
-// ---------------- OBSTACLE COLLISION (FIXED) ----------------
+// ---------------- OBSTACLE COLLISION ----------------
 function hitObstacle(o) {
 
     if (
@@ -206,11 +206,8 @@ function hitObstacle(o) {
         ball.y + 10 > o.y &&
         ball.y - 10 < o.y + o.h
     ) {
-
-        // reverse direction
         ball.dx *= -1;
 
-        // push ball OUT so it doesn't stick
         if (ball.x < o.x) {
             ball.x = o.x - 10;
         } else {
@@ -242,36 +239,35 @@ function score() {
             win();
         }
     }
+if (gameMode === "single") {
 
-    if (gameMode === "single") {
+    // ❌ PLAYER MISSES BALL (GAME OVER CONDITION)
+    if (ball.x < 0) {
 
-        if (ball.x < 0) {
+        state = "gameover";
 
-            state = "gameover";
+        document.getElementById("loseMessage")
+            .classList.remove("hidden");
 
-            document.getElementById("loseMessage")
-                .classList.remove("hidden");
+        document.getElementById("gameOver")
+            .classList.remove("hidden");
 
-            document.getElementById("gameOver")
-                .classList.remove("hidden");
-        }
-
-        if (gameMode === "single") {
-
-            // Right wall collision
-            if (ball.x >= W - 10) {
-                ball.x = W - 10;      // keep ball inside canvas
-                ball.dx *= -1;
-
-                scoreP1 += 100;
-
-                updateScore();
-                checkSpeedIncrease();
-                checkAchievements();
-
-            }
-        }
+        return;
     }
+
+    // ✔ SCORE PROGRESSION (SURVIVAL MODE)
+    if (ball.x >= W - 10) {
+
+        ball.x = W - 10;
+        ball.dx *= -1;
+
+        scoreP1 += 100;
+
+        updateScore();
+        checkSpeedIncrease();
+        checkAchievements();
+    }
+}
 }
 
 // ---------------- RESET ----------------
@@ -295,6 +291,10 @@ function win() {
 
     save(winner);
 }
+
+// ---------------- START MODES ----------------
+let gameMode = "menu";
+
 // ---------------- LEADERBOARD ----------------
 
 function openLeaderboard() {
@@ -347,6 +347,7 @@ function updateScore() {
 }
 
 // ---------------- START ----------------
+
 function startMulti() {
     gameMode = "multi";
     startGameBase();
@@ -354,7 +355,13 @@ function startMulti() {
 
 function startSingle() {
     gameMode = "single";
-    let scoreP1 = 0;
+
+    // scoreP1 = 0;
+    // speedLevel = 0;
+
+    // init();
+    // state = "play";
+
     startGameBase();
 }
 
@@ -366,8 +373,6 @@ function startGameBase() {
     document.getElementById("menu").classList.add("hidden");
     document.getElementById("gameScreen").classList.remove("hidden");
 
-
-
     init();
 
     if (gameMode === "multi") {
@@ -375,37 +380,18 @@ function startGameBase() {
     } else {
         state = "play";
     }
-
-
-
 }
 
+// ---------------- SPEED ----------------
 function checkSpeedIncrease() {
 
     let newLevel = Math.floor(scoreP1 / 500);
 
     if (newLevel > speedLevel) {
-
         speedLevel = newLevel;
-
         ball.dx *= 1.07;
         ball.dy *= 1.07;
     }
-}
-function retrySingle() {
-
-    document.getElementById("gameOver")
-        .classList.add("hidden");
-
-    scoreP1 = 0;
-    speedLevel = 0;
-
-    obstacles = [];
-
-    init();
-
-    gameMode = "single";
-    state = "play";
 }
 
 // ---------------- LOOP ----------------
@@ -416,6 +402,7 @@ function loop() {
     if (state === "play") {
 
         left.move("w", "s");
+
         if (gameMode !== "single") {
             right.move("ArrowUp", "ArrowDown");
         }
@@ -423,11 +410,11 @@ function loop() {
         ball.update();
 
         hitPaddle(left);
+
         if (gameMode !== "single") {
             hitPaddle(right);
-
         }
-        // OBSTACLE COLLISION FIX
+
         for (let i = 0; i < obstacles.length; i++) {
             hitObstacle(obstacles[i]);
         }
@@ -437,9 +424,10 @@ function loop() {
         score();
     }
 
-    // DRAW ALWAYS
     if (state === "play" || state === "countdown") {
+
         left.draw();
+
         if (gameMode !== "single") {
             right.draw();
         }
@@ -455,69 +443,85 @@ loop();
 function restart() {
     scoreP1 = 0;
     scoreP2 = 0;
-    reset()
+    reset();
 }
-
 
 function backMenu() {
     location.reload();
 }
-let gameMode = "menu"; // "multi" | "single"
+
+// ---------------- SCORE UI ----------------
+function updateScore() {
+
+    if (gameMode === "multi") {
+        document.getElementById("score").innerText =
+            scoreP1 + " : " + scoreP2;
+    }
+
+    if (gameMode === "single") {
+        document.getElementById("score").innerText =
+            "Score: " + scoreP1;
+    }
+}
 
 function retrySingle() {
 
-    document.getElementById("gameOver")
-        .classList.add("hidden");
+    // hide UI overlays properly
+    document.getElementById("gameOver").classList.add("hidden");
+    document.getElementById("loseMessage").classList.add("hidden");
 
+    // reset game state fully
+    state = "play";
+    gameMode = "single";
+
+    // reset scores
+    scoreP1 = 0;
+    speedLevel = 0;
+
+    // reset objects
     obstacles = [];
 
+    // reinitialize game objects
     init();
 
-    gameMode = "single";
-    state = "play";
-    let scoreP1 = 0;
-
-    document.getElementById("loseMessage")
-        .classList.add("hidden");
-
-
+    // IMPORTANT: force fresh ball state
+    ball.reset();
 }
 
+// ---------------- ACHIEVEMENTS ----------------
+function showToast(text) {
 
-function unlockAchievement(name) {
+    const toast = document.getElementById("toast");
 
-    if (unlockedAchievements.includes(name))
-        return;
+    toast.innerText = "🏆 " + text;
 
-    unlockedAchievements.push(name);
+    toast.classList.add("show");
 
-    const popup =
-        document.getElementById("achievement");
+    clearTimeout(toast.timer);
 
-    popup.innerText =
-        "🏆 Achievement Unlocked!\n" + name;
-
-    popup.classList.remove("hidden");
-
-    setTimeout(() => {
-        popup.classList.add("hidden");
-    }, 3000);
+    toast.timer = setTimeout(() => {
+        toast.classList.remove("show");
+    }, 2500);
 }
 
 function checkAchievements() {
 
-    if (scoreP1 >= 500)
-        unlockAchievement("Rookie");
+    const achievements = [
+        { score: 500, name: "Boi" },
+        { score: 1000, name: "Challenger" },
+        { score: 2500, name: "Veteran" },
+        { score: 5000, name: "Master" },
+        { score: 10000, name: "Legend" }
+    ];
 
-    if (scoreP1 >= 1000)
-        unlockAchievement("Challenger");
+    for (let a of achievements) {
 
-    if (scoreP1 >= 2500)
-        unlockAchievement("Veteran");
-
-    if (scoreP1 >= 5000)
-        unlockAchievement("Master");
-
-    if (scoreP1 >= 10000)
-        unlockAchievement("Legend");
+        if (
+            scoreP1 >= a.score &&
+            !unlockedAchievements.includes(a.name)
+        ) {
+            unlockedAchievements.push(a.name);
+            showToast(a.name);
+        }
+    }
 }
