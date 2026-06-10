@@ -1,51 +1,70 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<title>Pong Arena</title>
-<link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <title>Pong Arena</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-<!-- MENU -->
-<div id="menu" class="screen">
-    <h1>Pong Arena</h1>
+    <!-- MENU -->
+    <div id="menu" class="screen">
+        <h1>Pong Arena</h1>
 
-    <input id="p1" placeholder="Player 1 Name">
-    <input id="p2" placeholder="Player 2 Name">
+        <input id="p1" placeholder="Player 1 Name">
+        <input id="p2" placeholder="Player 2 Name">
+        <button onclick="startMulti()">Multiplayer</button>
+        <button onclick="startSingle()">Single Player</button>
+        <button onclick="openLeaderboard()">Leaderboard</button>
 
-    <button onclick="startGame()">Start</button>
-    <button onclick="openLeaderboard()">Leaderboard</button>
-</div>
-
-<!-- LEADERBOARD -->
-<div id="leaderboard" class="screen hidden">
-    <h1>Leaderboard</h1>
-    <div id="board"></div>
-    <button onclick="backMenu()">Back</button>
-</div>
-
-<!-- GAME -->
-<div id="gameScreen" class="hidden">
-
-    <div id="hud">
-        <span id="names"></span>
-        <span id="score">0 : 0</span>
     </div>
 
-    <div id="countdown"></div>
+    <!-- LEADERBOARD -->
+    <div id="leaderboard" class="screen hidden">
+        <h1>Leaderboard</h1>
+        <div id="board"></div>
+        <button onclick="backMenu()">Back</button>
+        <button onclick="openLeaderboard()">Leaderboard</button>
+    </div>
 
-    <canvas id="game" width="1400" height="800"></canvas>
-</div>
+    <!-- GAME -->
+    <div id="gameScreen" class="hidden">
 
-<!-- WIN -->
-<div id="win" class="screen hidden">
-    <h1 id="winText"></h1>
-    <button onclick="restart()">Play Again</button>
-    <button onclick="backMenu()">Menu</button>
-</div>
+        <div id="hud">
+            <span id="names"></span>
+            <span id="score">0 : 0</span>
+        </div>
 
-<script src="script.js"></script>
+        <div id="countdown"></div>
+
+        <canvas id="game" width="1400" height="800"></canvas>
+
+        <div id="loseMessage" class="hidden lose-message">
+            You Lost,<br>
+            Better Luck Next Time!
+        </div>
+
+        <div id="gameOver" class="hidden popup">
+
+            <h2>Game Over</h2>
+            <button onclick="retrySingle()">Retry</button>
+            <button onclick="backMenu()">Menu</button>
+            <div id="achievement" class="hidden achievement-popup"></div>
+            
+        </div>
+
+    </div>
+
+    <!-- WIN -->
+    <div id="win" class="screen hidden">
+        <h1 id="winText"></h1>
+        <button onclick="restart()">Play Again</button>
+        <button onclick="backMenu()">Menu</button>
+    </div>
+
+    <script src="script.js"></script>
 </body>
+
 </html>

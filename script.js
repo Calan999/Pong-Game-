@@ -1,6 +1,7 @@
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
+
 const W = canvas.width;
 const H = canvas.height;
 
@@ -10,6 +11,8 @@ let state = "menu"; // menu | countdown | play | win
 
 let scoreP1 = 0;
 let scoreP2 = 0;
+
+let speedLevel = 0;
 
 let p1Name = "";
 let p2Name = "";
@@ -112,7 +115,9 @@ function init() {
     scoreP2 = 0;
 
     left = new Paddle(30, p1Name, "red");
-    right = new Paddle(W - 45, p2Name, "dodgerblue");
+    if (gameMode !== "single") {
+        right = new Paddle(W - 45, p2Name, "dodgerblue");
+    }
 
     ball = new Ball();
 
@@ -219,20 +224,53 @@ function score() {
 
     if (state !== "play") return;
 
-    if (ball.x < 0) {
-        scoreP2++;
-        reset();
+    if (gameMode === "multi") {
+
+        if (ball.x < 0) {
+            scoreP2++;
+            reset();
+        }
+
+        if (ball.x > W) {
+            scoreP1++;
+            reset();
+        }
+
+        updateScore();
+
+        if (scoreP1 >= WIN_SCORE || scoreP2 >= WIN_SCORE) {
+            win();
+        }
     }
 
-    if (ball.x > W) {
-        scoreP1++;
-        reset();
-    }
+    if (gameMode === "single") {
 
-    updateScore();
+        if (ball.x < 0) {
 
-    if (scoreP1 >= WIN_SCORE || scoreP2 >= WIN_SCORE) {
-        win();
+            state = "gameover";
+
+            document.getElementById("loseMessage")
+                .classList.remove("hidden");
+
+            document.getElementById("gameOver")
+                .classList.remove("hidden");
+        }
+
+        if (gameMode === "single") {
+
+            // Right wall collision
+            if (ball.x >= W - 10) {
+                ball.x = W - 10;      // keep ball inside canvas
+                ball.dx *= -1;
+
+                scoreP1 += 100;
+
+                updateScore();
+                checkSpeedIncrease();
+                checkAchievements();
+
+            }
+        }
     }
 }
 
@@ -259,7 +297,7 @@ function win() {
 }
 // ---------------- LEADERBOARD ----------------
 
-    function openLeaderboard() {
+function openLeaderboard() {
 
     document.getElementById("menu").classList.add("hidden");
     document.getElementById("leaderboard").classList.remove("hidden");
@@ -296,12 +334,31 @@ function save(name) {
 
 // ---------------- UI ----------------
 function updateScore() {
-    document.getElementById("score").innerText =
-        scoreP1 + " : " + scoreP2;
+
+    if (gameMode === "multi") {
+        document.getElementById("score").innerText =
+            scoreP1 + " : " + scoreP2;
+    }
+
+    if (gameMode === "single") {
+        document.getElementById("score").innerText =
+            "Score: " + scoreP1;
+    }
 }
 
 // ---------------- START ----------------
-function startGame() {
+function startMulti() {
+    gameMode = "multi";
+    startGameBase();
+}
+
+function startSingle() {
+    gameMode = "single";
+    let scoreP1 = 0;
+    startGameBase();
+}
+
+function startGameBase() {
 
     p1Name = document.getElementById("p1").value || "P1";
     p2Name = document.getElementById("p2").value || "P2";
@@ -309,8 +366,46 @@ function startGame() {
     document.getElementById("menu").classList.add("hidden");
     document.getElementById("gameScreen").classList.remove("hidden");
 
+
+
     init();
-    countdown();
+
+    if (gameMode === "multi") {
+        countdown();
+    } else {
+        state = "play";
+    }
+
+
+
+}
+
+function checkSpeedIncrease() {
+
+    let newLevel = Math.floor(scoreP1 / 500);
+
+    if (newLevel > speedLevel) {
+
+        speedLevel = newLevel;
+
+        ball.dx *= 1.07;
+        ball.dy *= 1.07;
+    }
+}
+function retrySingle() {
+
+    document.getElementById("gameOver")
+        .classList.add("hidden");
+
+    scoreP1 = 0;
+    speedLevel = 0;
+
+    obstacles = [];
+
+    init();
+
+    gameMode = "single";
+    state = "play";
 }
 
 // ---------------- LOOP ----------------
@@ -321,13 +416,17 @@ function loop() {
     if (state === "play") {
 
         left.move("w", "s");
-        right.move("ArrowUp", "ArrowDown");
+        if (gameMode !== "single") {
+            right.move("ArrowUp", "ArrowDown");
+        }
 
         ball.update();
 
         hitPaddle(left);
-        hitPaddle(right);
+        if (gameMode !== "single") {
+            hitPaddle(right);
 
+        }
         // OBSTACLE COLLISION FIX
         for (let i = 0; i < obstacles.length; i++) {
             hitObstacle(obstacles[i]);
@@ -341,7 +440,10 @@ function loop() {
     // DRAW ALWAYS
     if (state === "play" || state === "countdown") {
         left.draw();
-        right.draw();
+        if (gameMode !== "single") {
+            right.draw();
+        }
+
         ball.draw();
     }
 
@@ -351,11 +453,71 @@ loop();
 
 // ---------------- NAV ----------------
 function restart() {
-        scoreP1 = 0;
+    scoreP1 = 0;
     scoreP2 = 0;
     reset()
 }
 
+
 function backMenu() {
     location.reload();
+}
+let gameMode = "menu"; // "multi" | "single"
+
+function retrySingle() {
+
+    document.getElementById("gameOver")
+        .classList.add("hidden");
+
+    obstacles = [];
+
+    init();
+
+    gameMode = "single";
+    state = "play";
+    let scoreP1 = 0;
+
+    document.getElementById("loseMessage")
+        .classList.add("hidden");
+
+
+}
+
+
+function unlockAchievement(name) {
+
+    if (unlockedAchievements.includes(name))
+        return;
+
+    unlockedAchievements.push(name);
+
+    const popup =
+        document.getElementById("achievement");
+
+    popup.innerText =
+        "🏆 Achievement Unlocked!\n" + name;
+
+    popup.classList.remove("hidden");
+
+    setTimeout(() => {
+        popup.classList.add("hidden");
+    }, 3000);
+}
+
+function checkAchievements() {
+
+    if (scoreP1 >= 500)
+        unlockAchievement("Rookie");
+
+    if (scoreP1 >= 1000)
+        unlockAchievement("Challenger");
+
+    if (scoreP1 >= 2500)
+        unlockAchievement("Veteran");
+
+    if (scoreP1 >= 5000)
+        unlockAchievement("Master");
+
+    if (scoreP1 >= 10000)
+        unlockAchievement("Legend");
 }
