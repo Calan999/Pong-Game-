@@ -1,0 +1,23 @@
+
+// Moving Obstacles ?? 
+
+update() {
+    this.y += Math.sin(Date.now() / 500) * 0.5;
+}
+
+
+// Call in loop 
+
+obstacles.forEach(o => o.update && o.update()); 
+
+
+
+
+
+
+
+
+
+
+
+

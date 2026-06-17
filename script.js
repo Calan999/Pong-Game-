@@ -95,13 +95,59 @@ class Obstacle {
     constructor() {
         this.w = 30;
         this.h = 120;
+
         this.x = Math.random() * (W - 600) + 300;
         this.y = Math.random() * (H - 200) + 100;
+
+        this.direction = Math.random() > 0.5 ? 1 : -1;
+        this.speed = 1;
+    }
+
+    update() {
+        this.y += this.speed * this.direction;
+
+        if (this.y <= 0 || this.y + this.h >= H) {
+            this.direction *= -1;
+        }
     }
 
     draw() {
         ctx.fillStyle = "gray";
         ctx.fillRect(this.x, this.y, this.w, this.h);
+    }
+}
+
+//---------------- Spawn Obstacles -----------------------
+
+function spawnObstacles() {
+
+    obstacles = [];
+
+    let count = 2 + Math.floor(scoreP1 / 1500);
+
+    count = Math.min(count, 5);
+
+    console.log("Score:", scoreP1);
+    console.log("Obstacle count:", count);
+
+
+    for (let i = 0; i < count; i++) {
+
+        let attempts = 0;
+        let o;
+
+        do {
+            o = new Obstacle();
+            attempts++;
+        }
+        while (
+            obstacles.some(existing =>
+                isTooClose(o, existing)
+            ) &&
+            attempts < 50
+        );
+
+        obstacles.push(o);
     }
 }
 
@@ -123,6 +169,9 @@ function init() {
     ball = new Ball();
 
     obstacles = [];
+
+    spawnObstacles();
+
 
 
 }
@@ -163,26 +212,10 @@ function isTooClose(o1, o2, minDistance = 40) {
 }
 
 setInterval(() => {
-    if (state !== "play") return;
-
-    obstacles = [];
-
-    for (let i = 0; i < 2; i++) {
-        let attempts = 0;
-        let newObstacle;
-
-        do {
-            newObstacle = new Obstacle();
-            attempts++;
-        } while (
-            obstacles.some(o => isTooClose(newObstacle, o)) &&
-            attempts < 50
-        );
-
-        obstacles.push(newObstacle);
+    if (state === "play") {
+        spawnObstacles();
     }
-
-}, 7000);
+}, 6000);
 
 // ---------------- COLLISION ----------------
 function hitPaddle(p) {
@@ -192,8 +225,19 @@ function hitPaddle(p) {
         ball.y > p.y &&
         ball.y < p.y + p.h
     ) {
-        ball.dx *= -1;
-        ball.speed += 0.3;
+        // where on paddle did we hit?
+        let hitPos = (ball.y - p.y) / p.h; // 0 (top) → 1 (bottom)
+
+        // convert to angle range (-1 to 1)
+        let angle = (hitPos - 0.5) * 2;
+
+        ball.dx = -ball.dx;
+
+        // apply angle influence
+        ball.dy = angle * 6;
+
+        // slight speed increase
+        ball.dx *= 1.03;
     }
 }
 
@@ -239,35 +283,38 @@ function score() {
             win();
         }
     }
-if (gameMode === "single") {
+    if (gameMode === "single") {
 
-    // ❌ PLAYER MISSES BALL (GAME OVER CONDITION)
-    if (ball.x < 0) {
+        // ❌ PLAYER MISSES BALL (GAME OVER CONDITION)
+        if (ball.x < 0) {
 
-        state = "gameover";
+            state = "gameover";
 
-        document.getElementById("loseMessage")
-            .classList.remove("hidden");
+            document.getElementById("loseMessage")
+                .classList.remove("hidden");
 
-        document.getElementById("gameOver")
-            .classList.remove("hidden");
+            document.getElementById("gameOver")
+                .classList.remove("hidden");
 
-        return;
+            return;
+        }
+
+        // ✔ SCORE PROGRESSION (SURVIVAL MODE)
+        if (ball.x >= W - 10) {
+
+            ball.x = W - 10;
+            ball.dx *= -1;
+
+            scoreP1 += 100;
+
+            updateScore();
+            checkSpeedIncrease();
+
+            if (gameMode === "single") {
+                checkAchievements();
+            }
+        }
     }
-
-    // ✔ SCORE PROGRESSION (SURVIVAL MODE)
-    if (ball.x >= W - 10) {
-
-        ball.x = W - 10;
-        ball.dx *= -1;
-
-        scoreP1 += 100;
-
-        updateScore();
-        checkSpeedIncrease();
-        checkAchievements();
-    }
-}
 }
 
 // ---------------- RESET ----------------
@@ -284,6 +331,14 @@ function win() {
 
     let winner = scoreP1 > scoreP2 ? p1Name : p2Name;
 
+    // ❌ hide game screen so it doesn't overlap
+    document.getElementById("gameScreen").classList.add("hidden");
+
+    // ❌ ensure other overlays are hidden (safety reset)
+    document.getElementById("loseMessage").classList.add("hidden");
+    document.getElementById("gameOver").classList.add("hidden");
+
+    // ✔ show win screen
     document.getElementById("winText").innerText =
         winner + " Wins!";
 
@@ -319,18 +374,7 @@ function openLeaderboard() {
         board.appendChild(div);
     });
 }
-// ---------------- LEADERBOARD ----------------
-function save(name) {
 
-    let data = JSON.parse(localStorage.getItem("lb")) || [];
-
-    let p = data.find(x => x.name === name);
-
-    if (p) p.points += 5;
-    else data.push({ name, points: 5 });
-
-    localStorage.setItem("lb", JSON.stringify(data));
-}
 
 // ---------------- UI ----------------
 function updateScore() {
@@ -415,12 +459,14 @@ function loop() {
             hitPaddle(right);
         }
 
-        for (let i = 0; i < obstacles.length; i++) {
-            hitObstacle(obstacles[i]);
-        }
+        obstacles.forEach(o => {
 
-        obstacles.forEach(o => o.draw());
+            o.update();
 
+            hitObstacle(o);
+
+            o.draw();
+        });
         score();
     }
 
@@ -441,9 +487,19 @@ loop();
 
 // ---------------- NAV ----------------
 function restart() {
+
+    // hide win screen
+    document.getElementById("win").classList.add("hidden");
+
+    // reset game state
     scoreP1 = 0;
     scoreP2 = 0;
-    reset();
+    speedLevel = 0;
+
+    state = "menu";
+
+    // restart clean game
+    startGameBase();
 }
 
 function backMenu() {
@@ -524,4 +580,35 @@ function checkAchievements() {
             showToast(a.name);
         }
     }
+}
+
+function save(name, points) {
+
+    let data = JSON.parse(localStorage.getItem("lb")) || [];
+
+    let p = data.find(x => x.name === name);
+
+    if (p) p.points += 5;
+    else data.push({ name, points: 5 });
+
+    localStorage.setItem("lb", JSON.stringify(data));
+
+    fetch("http://localhost:3000/score", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            name: name,
+            points: 5
+        })
+    });
+}
+
+async function loadLeaderboard() {
+
+    const res = await fetch("http://localhost:3000/leaderboard");
+    const data = await res.json();
+
+    console.log(data);
 }

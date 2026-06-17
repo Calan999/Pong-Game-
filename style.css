@@ -1,46 +1,48 @@
 body {
-margin:0;
-background:black;
-color:white;
-font-family:Arial;
-text-align:center;
-overflow:hidden;
+    margin: 0;
+    background: black;
+    color: white;
+    font-family: Arial;
+    text-align: center;
+    overflow: hidden;
 }
 
 .screen {
-position:absolute;
-width:100%;
-height:50%;
-display:flex;
-flex-direction:column;
-justify-content:center;
-align-items:center;
+    position: absolute;
+    width: 100%;
+    height: 50%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
 }
 
-.hidden { display:none; }
+.hidden {
+    display: none;
+}
 
 input {
-margin:5px;
-padding:10px;
+    margin: 5px;
+    padding: 10px;
 }
 
 button {
-margin:10px;
-padding:10px 20px;
-cursor:pointer;
+    margin: 10px;
+    padding: 10px 20px;
+    cursor: pointer;
 }
 
 #game {
-background:black;
-border:3px solid white;
+    background: black;
+    border: 3px solid white;
 }
 
 #hud {
-display:flex;
-justify-content:space-between;
-width:1400px;
-margin:auto;
-font-size:20px;
+    display: flex;
+    justify-content: space-between;
+    width: 1400px;
+    margin: auto;
+    font-size: 20px;
 }
 
 .lose-message {
@@ -59,10 +61,10 @@ font-size:20px;
 }
 
 #countdown {
-position:absolute;
-top:45%;
-font-size:80px;
-width:100%;
+    position: absolute;
+    top: 45%;
+    font-size: 80px;
+    width: 100%;
 }
 
 .toast {
@@ -79,7 +81,7 @@ width:100%;
     font-size: 18px;
     font-weight: bold;
 
-    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
 
     transform: translateX(120%);
     opacity: 0;
@@ -91,49 +93,54 @@ width:100%;
 .toast.show {
     transform: translateX(0);
     opacity: 1;
-}body {
-margin:0;
-background:black;
-color:white;
-font-family:Arial;
-text-align:center;
-overflow:hidden;
+}
+
+body {
+    margin: 0;
+    background: black;
+    color: white;
+    font-family: Arial;
+    text-align: center;
+    overflow: hidden;
 }
 
 .screen {
-position:absolute;
-width:100%;
-height:50%;
-display:flex;
-flex-direction:column;
-justify-content:center;
-align-items:center;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
 }
 
-.hidden { display:none; }
+.hidden {
+    display: none;
+}
 
 input {
-margin:5px;
-padding:10px;
+    margin: 5px;
+    padding: 10px;
 }
 
 button {
-margin:10px;
-padding:10px 20px;
-cursor:pointer;
+    margin: 10px;
+    padding: 10px 20px;
+    cursor: pointer;
 }
 
 #game {
-background:black;
-border:3px solid white;
+    background: black;
+    border: 3px solid white;
 }
 
 #hud {
-display:flex;
-justify-content:space-between;
-width:1400px;
-margin:auto;
-font-size:20px;
+    display: flex;
+    justify-content: space-between;
+    width: 1400px;
+    margin: auto;
+    font-size: 20px;
 }
 
 .lose-message {
@@ -152,10 +159,10 @@ font-size:20px;
 }
 
 #countdown {
-position:absolute;
-top:45%;
-font-size:80px;
-width:100%;
+    position: absolute;
+    top: 45%;
+    font-size: 80px;
+    width: 100%;
 }
 
 .toast {
@@ -172,7 +179,7 @@ width:100%;
     font-size: 18px;
     font-weight: bold;
 
-    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
 
     transform: translateX(120%);
     opacity: 0;
@@ -184,4 +191,9 @@ width:100%;
 .toast.show {
     transform: translateX(0);
     opacity: 1;
+}
+
+/* WIN SCREEN */
+#win {
+    z-index: 2000;
 }
