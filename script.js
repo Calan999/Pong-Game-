@@ -13,12 +13,17 @@ let scoreP2 = 0;
 
 let speedLevel = 0;
 
+let isCountingDown = false;
+
 let unlockedAchievements = [];
 
 let p1Name = "";
 let p2Name = "";
 
 let keys = {};
+
+let trail = [];
+const TRAIL_LENGTH = 12;
 
 document.addEventListener("keydown", e => keys[e.key] = true);
 document.addEventListener("keyup", e => keys[e.key] = false);
@@ -83,6 +88,13 @@ class Ball {
 
         this.x += this.dx;
         this.y += this.dy;
+
+        // save trail
+        trail.push({ x: this.x, y: this.y });
+
+        if (trail.length > TRAIL_LENGTH) {
+            trail.shift();
+        }
 
         if (this.y < 10 || this.y > H - 10) {
             this.dy *= -1;
@@ -178,7 +190,9 @@ function init() {
 
 // ---------------- COUNTDOWN ----------------
 function countdown() {
+    if (isCountingDown) return;   // ⭐ verhindert doppelte Starts
 
+    isCountingDown = true;
     state = "countdown";
 
     let c = 3;
@@ -195,7 +209,9 @@ function countdown() {
         } else {
             document.getElementById("countdown").innerText = "";
             clearInterval(t);
+
             state = "play";
+            isCountingDown = false;  // ⭐ wieder freigeben
         }
 
     }, 1000);
@@ -321,7 +337,10 @@ function score() {
 function reset() {
     ball.reset();
     state = "countdown";
-    countdown();
+
+    setTimeout(() => {
+        countdown();
+    }, 50);
 }
 
 // ---------------- WIN ----------------
@@ -467,6 +486,7 @@ function loop() {
 
             o.draw();
         });
+
         score();
     }
 
@@ -477,12 +497,14 @@ function loop() {
         if (gameMode !== "single") {
             right.draw();
         }
-
         ball.draw();
+    
     }
 
     requestAnimationFrame(loop);
-}
+
+} // <-- DIESE KLAMMER FEHLTE
+
 loop();
 
 // ---------------- NAV ----------------
@@ -611,4 +633,65 @@ async function loadLeaderboard() {
     const data = await res.json();
 
     console.log(data);
+}
+
+const bg = document.getElementById("bg");
+const bctx = bg.getContext("2d");
+
+bg.width = window.innerWidth;
+bg.height = window.innerHeight;
+
+let particles = [];
+
+for (let i = 0; i < 80; i++) {
+    particles.push({
+        x: Math.random() * bg.width,
+        y: Math.random() * bg.height,
+        r: Math.random() * 3 + 1,
+        dx: (Math.random() - 0.5) * 1,
+        dy: (Math.random() - 0.5) * 1,
+        hue: Math.random() * 160 + 160 // blue/green range
+    });
+}
+
+function animateBG() {
+    bctx.clearRect(0, 0, bg.width, bg.height);
+
+    for (let p of particles) {
+
+        p.x += p.dx;
+        p.y += p.dy;
+
+        if (p.x < 0 || p.x > bg.width) p.dx *= -1;
+        if (p.y < 0 || p.y > bg.height) p.dy *= -1;
+
+        // soft glow effect
+        const gradient = bctx.createRadialGradient(
+            p.x, p.y, 0,
+            p.x, p.y, p.r * 4
+        );
+
+        gradient.addColorStop(0, `hsla(${p.hue}, 100%, 60%, 0.8)`);
+        gradient.addColorStop(1, `hsla(${p.hue}, 100%, 60%, 0)`);
+
+        bctx.beginPath();
+        bctx.fillStyle = gradient;
+        bctx.arc(p.x, p.y, p.r * 4, 0, Math.PI * 2);
+        bctx.fill();
+    }
+
+    requestAnimationFrame(animateBG);
+}
+animateBG();
+
+function drawTrail() {
+    for (let i = 0; i < trail.length; i++) {
+        let p = trail[i];
+        let alpha = i / trail.length;
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 10, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(0, 255, 213, ${alpha * 0.4})`;
+        ctx.fill();
+    }
 }
