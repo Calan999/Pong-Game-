@@ -254,6 +254,9 @@ function hitPaddle(p) {
 
         // slight speed increase
         ball.dx *= 1.03;
+
+        shakeAmount = 3;
+
     }
 }
 
@@ -695,3 +698,105 @@ function drawTrail() {
         ctx.fill();
     }
 }
+
+let shakeAmount = 0;
+
+function applyShake() {
+    if (shakeAmount > 0) {
+        const x = (Math.random() - 0.5) * shakeAmount;
+        const y = (Math.random() - 0.5) * shakeAmount;
+
+        ctx.setTransform(1, 0, 0, 1, x, y);
+
+        shakeAmount *= 0.9;
+    } else {
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+    }
+
+    requestAnimationFrame(applyShake);
+}
+
+applyShake();
+
+let lastTime = performance.now();
+let fps = 0;
+
+function showFPS() {
+    const now = performance.now();
+    fps = Math.round(1000 / (now - lastTime));
+    lastTime = now;
+
+    ctx.fillStyle = "rgba(255,255,255,0.5)";
+    ctx.font = "14px Arial";
+    ctx.fillText("FPS: " + fps, 20, 30);
+
+    requestAnimationFrame(showFPS);
+}
+
+showFPS();
+
+function drawGrid() {
+    const size = 50;
+
+    ctx.save();
+    ctx.strokeStyle = "rgba(0,255,213,0.05)";
+    ctx.lineWidth = 1;
+
+    for (let x = 0; x < W; x += size) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, H);
+        ctx.stroke();
+    }
+
+    for (let y = 0; y < H; y += size) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(W, y);
+        ctx.stroke();
+    }
+
+    ctx.restore();
+}
+
+let glowT = 0;
+
+function ballGlowPulse() {
+    glowT += 0.05;
+
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+
+    const glow = 20 + Math.sin(glowT) * 8;
+
+    ctx.beginPath();
+    ctx.arc(
+        (ball ? ball.x : W/2),
+        (ball ? ball.y : H/2),
+        glow,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.fillStyle = "rgba(0,255,213,0.05)";
+    ctx.fill();
+
+    ctx.restore();
+
+    requestAnimationFrame(ballGlowPulse);
+}
+
+ballGlowPulse();
+
+let hue = 180;
+
+function colorShift() {
+    hue += 0.1;
+
+    document.body.style.background = 
+        `radial-gradient(circle, hsl(${hue}, 40%, 5%), black)`;
+
+    requestAnimationFrame(colorShift);
+}
+
+colorShift();
